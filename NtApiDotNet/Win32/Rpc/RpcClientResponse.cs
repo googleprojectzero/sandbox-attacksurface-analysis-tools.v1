@@ -35,17 +35,23 @@ namespace NtApiDotNet.Win32.Rpc
         /// Indicates the NDR data representation for the response.
         /// </summary>
         public NdrDataRepresentation DataRepresentation { get; }
+        /// <summary>
+        /// An optional transport specific marshaler.
+        /// </summary>
+        public INdrTransportMarshaler Marshaler { get; }
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="ndr_buffer">The NDR buffer.</param>
         /// <param name="handles">List of handles</param>
-        public RpcClientResponse(byte[] ndr_buffer, IEnumerable<NtObject> handles)
+        /// <param name="marshaler">Transport specific marshaler.</param>
+        public RpcClientResponse(byte[] ndr_buffer, IEnumerable<NtObject> handles, INdrTransportMarshaler marshaler = null)
         {
             NdrBuffer = ndr_buffer;
             Handles = new List<NtObject>(handles.Select(o => o.DuplicateObject()));
             DataRepresentation = new NdrDataRepresentation();
+            Marshaler = marshaler;
         }
     }
 }

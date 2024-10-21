@@ -44,7 +44,7 @@ namespace NtApiDotNet.Win32.Rpc
         public Dictionary<NdrBaseTypeReference, CodeMemberMethod> MarshalMethods { get; }
         public Dictionary<NdrBaseTypeReference, CodeMemberMethod> UnmarshalMethods { get; }
 
-        public static CodeTypeDeclaration CreateUnmarshalHelperType(CodeNamespace ns, string name, bool type_decode)
+        public static CodeTypeDeclaration CreateUnmarshalHelperType(CodeNamespace ns, string name, bool type_decode, bool transport_marshaler)
         {
             var type = ns.AddType(name);
             type.TypeAttributes = TypeAttributes.NestedAssembly;
@@ -56,6 +56,10 @@ namespace NtApiDotNet.Win32.Rpc
             con.BaseConstructorArgs.Add(new CodePropertyReferenceExpression(param_var, "NdrBuffer"));
             con.BaseConstructorArgs.Add(new CodePropertyReferenceExpression(param_var, "Handles"));
             con.BaseConstructorArgs.Add(new CodePropertyReferenceExpression(param_var, "DataRepresentation"));
+            if (transport_marshaler)
+            {
+                con.BaseConstructorArgs.Add(new CodePropertyReferenceExpression(param_var, "Marshaler"));
+            }
 
             con = type.AddConstructor(MemberAttributes.Public);
             con.AddParam(typeof(byte[]).ToRef(), "ba");
@@ -71,21 +75,29 @@ namespace NtApiDotNet.Win32.Rpc
             return type;
         }
 
-        public static CodeTypeDeclaration CreateMarshalHelperType(CodeNamespace ns, string name)
+        public static CodeTypeDeclaration CreateMarshalHelperType(CodeNamespace ns, string name, bool transport_marshaler)
         {
             var marshal_type = new CodeTypeReference(typeof(NdrMarshalBuffer));
             var type = ns.AddType(name);
             type.TypeAttributes = TypeAttributes.NestedAssembly;
             type.BaseTypes.Add(marshal_type);
+
+            if (transport_marshaler)
+            {
+                var con = type.AddConstructor(MemberAttributes.Public);
+                con.AddParam(typeof(INdrTransportMarshaler).ToRef(), "m");
+                con.BaseConstructorArgs.Add(CodeGenUtils.GetVariable("m"));
+            }
+
             return type;
         }
 
-        public MarshalHelperBuilder(CodeNamespace ns, string marshal_name, string unmarshal_name, bool type_decode)
+        public MarshalHelperBuilder(CodeNamespace ns, string marshal_name, string unmarshal_name, bool type_decode, bool transport_marshaler)
         {
-            MarshalHelper = CreateMarshalHelperType(ns, marshal_name);
+            MarshalHelper = CreateMarshalHelperType(ns, marshal_name, transport_marshaler);
             MarshalHelper.AddStartRegion("Marshal Helpers");
             MarshalHelperType = new CodeTypeReference(MarshalHelper.Name);
-            UnmarshalHelper = CreateUnmarshalHelperType(ns, unmarshal_name, type_decode);
+            UnmarshalHelper = CreateUnmarshalHelperType(ns, unmarshal_name, type_decode, transport_marshaler);
             UnmarshalHelper.AddEndRegion();
             UnmarshalHelperType = new CodeTypeReference(UnmarshalHelper.Name);
             MarshalMethods = new Dictionary<NdrBaseTypeReference, CodeMemberMethod>();

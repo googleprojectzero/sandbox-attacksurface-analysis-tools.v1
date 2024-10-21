@@ -32,9 +32,10 @@ namespace NtApiDotNet.Ndr.Marshal
         private readonly MemoryStream _stm;
         private readonly BinaryReader _reader;
         private readonly DisposableList<NtObject> _handles;
-        private NdrDeferralStack _deferred_reads;
+        private readonly NdrDeferralStack _deferred_reads;
+        private readonly Dictionary<int, object> _full_pointers;
+        private readonly INdrTransportMarshaler _marshaler;
         private int[] _conformance_values;
-        private Dictionary<int, object> _full_pointers;
 
         private string[] ReadStringArray(int[] refs, Func<string> reader)
         {
@@ -154,13 +155,14 @@ namespace NtApiDotNet.Ndr.Marshal
         #endregion
 
         #region Constructors
-        public NdrUnmarshalBuffer(byte[] buffer, IEnumerable<NtObject> handles, NdrDataRepresentation data_represenation)
+        public NdrUnmarshalBuffer(byte[] buffer, IEnumerable<NtObject> handles, NdrDataRepresentation data_represenation, INdrTransportMarshaler marshaler = null)
         {
             _stm = new MemoryStream(buffer);
             _reader = new BinaryReader(_stm, Encoding.Unicode);
             _handles = new DisposableList<NtObject>(handles);
             _deferred_reads = new NdrDeferralStack();
             _full_pointers = new Dictionary<int, object>();
+            _marshaler = marshaler;
             CheckDataRepresentation(data_represenation);
         }
         public NdrUnmarshalBuffer(byte[] buffer, IEnumerable<NtObject> handles) 
@@ -218,6 +220,15 @@ namespace NtApiDotNet.Ndr.Marshal
         public NdrInterfacePointer ReadInterfacePointer()
         {
             return ReadStruct<NdrInterfacePointer>();
+        }
+
+        public INdrComObject ReadComObject()
+        {
+            if (_marshaler is null)
+            {
+                throw new NotSupportedException("Marshaling COM objects is not supported.");
+            }
+            return _marshaler.UnmarshalComObject(ReadInterfacePointer());
         }
 
         public T[] ReadPipeArray<T>() where T : struct

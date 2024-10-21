@@ -62,6 +62,13 @@ namespace NtApiDotNet.Ndr.Marshal
         /// </summary>
         public NdrFloatingPointRepresentation FloatingPointRepresentation { get; set; }
 
+        internal static NdrDataRepresentation Default => new NdrDataRepresentation()
+        {
+            CharacterRepresentation = NdrCharacterRepresentation.ASCII,
+            FloatingPointRepresentation = NdrFloatingPointRepresentation.IEEE,
+            IntegerRepresentation = NdrIntegerRepresentation.LittleEndian
+        };
+
         internal NdrDataRepresentation(byte[] data_rep)
         {
             CharacterRepresentation = (NdrCharacterRepresentation)(data_rep[0] & 0xF);

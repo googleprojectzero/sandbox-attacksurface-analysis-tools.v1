@@ -453,6 +453,27 @@ namespace NtApiDotNet.Win32.Rpc
                 pipe_type, null, null, args, args);
         }
 
+        private RpcTypeDescriptor GetInterfacePointerTypeDescriptor(NdrInterfacePointerTypeReference type, MarshalHelperBuilder marshal_helper)
+        {
+            if (HasFlag(RpcClientBuilderFlags.MarshalComObjects))
+            {
+                AdditionalArguments args = null;
+                if (type.IsConstant)
+                {
+                    CodeExpression iid_exp = new CodeObjectCreateExpression(typeof(Guid).ToRef(), CodeGenUtils.GetPrimitive(type.Iid.ToString()));
+                    args = new AdditionalArguments(false, iid_exp);
+                }
+
+                return new RpcTypeDescriptor(typeof(INdrComObject), nameof(NdrUnmarshalBuffer.ReadComObject),
+                        marshal_helper, nameof(NdrMarshalBuffer.WriteComObject), type, type.IidIsDescriptor, null, args, null, RpcPointerType.Unique);
+            }
+            else
+            {
+                return new RpcTypeDescriptor(typeof(NdrInterfacePointer), nameof(NdrUnmarshalBuffer.ReadInterfacePointer),
+                    nameof(NdrMarshalBuffer.WriteInterfacePointer), type, RpcPointerType.Unique);
+            }
+        }
+
         private RpcTypeDescriptor GetTypeDescriptorInternal(NdrBaseTypeReference type, MarshalHelperBuilder marshal_helper)
         {
             RpcTypeDescriptor ret_desc = null;
@@ -497,10 +518,9 @@ namespace NtApiDotNet.Win32.Rpc
             {
                 ret_desc = GetTypeDescriptor(byte_count_pointer_type.Type, marshal_helper);
             }
-            else if (type is NdrInterfacePointerTypeReference)
+            else if (type is NdrInterfacePointerTypeReference intf_type)
             {
-                ret_desc = new RpcTypeDescriptor(typeof(NdrInterfacePointer), nameof(NdrUnmarshalBuffer.ReadInterfacePointer),
-                    nameof(NdrMarshalBuffer.WriteInterfacePointer), type, RpcPointerType.Unique);
+                ret_desc = GetInterfacePointerTypeDescriptor(intf_type, marshal_helper);
             }
             else if (type is NdrPipeTypeReference pipe_type)
             {
@@ -894,6 +914,9 @@ namespace NtApiDotNet.Win32.Rpc
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_ver.Major));
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_ver.Minor));
 
+            CodeExpression[] marshal_args = HasFlag(RpcClientBuilderFlags.MarshalComObjects) ?
+                new[] { new CodeMethodInvokeExpression(null, "GetMarshaler") } : Array.Empty<CodeExpression>();
+
             type.CreateSendReceive(marshal_helper);
 
             foreach (var proc in _procs)
@@ -937,7 +960,7 @@ namespace NtApiDotNet.Win32.Rpc
                     proc.Params.Select(p => Tuple.Create(p.Offset, p.Name)).ToList();
 
                 method.ReturnType = return_type.CodeType;
-                method.CreateMarshalObject(MARSHAL_NAME, marshal_helper);
+                method.CreateMarshalObject(MARSHAL_NAME, marshal_helper, marshal_args);
 
                 int out_parameter_count = 0;
                 List<Action> pipe_marshal_cmds = new List<Action>();
@@ -1112,7 +1135,12 @@ namespace NtApiDotNet.Win32.Rpc
             AddServerComment(unit);
             CodeNamespace ns = unit.AddNamespace(ns_name);
             bool type_decode = HasFlag(RpcClientBuilderFlags.GenerateComplexTypeEncodeMethods);
-            MarshalHelperBuilder marshal_helper = new MarshalHelperBuilder(ns, MARSHAL_HELPER_NAME, UNMARSHAL_HELPER_NAME, type_decode);
+            bool transport_marshaler = HasFlag(RpcClientBuilderFlags.MarshalComObjects);
+            if (type_decode && transport_marshaler)
+            {
+                throw new NotSupportedException("Can't support complex type encoding and COM object marshaling.");
+            }
+            MarshalHelperBuilder marshal_helper = new MarshalHelperBuilder(ns, MARSHAL_HELPER_NAME, UNMARSHAL_HELPER_NAME, type_decode, transport_marshaler);
             int complex_type_count = GenerateComplexTypes(ns, marshal_helper);
             if (type_decode)
             {

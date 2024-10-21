@@ -117,6 +117,14 @@ namespace NtApiDotNet.Win32.Rpc
             throw new RpcTransportException("RPC transport doesn't support asynchronous pipes.");
         }
 
+        /// <summary>
+        /// Get the NDR transport marshaler if supported.
+        /// </summary>
+        /// <returns>The NDR transport marshaler. Returns null if not supported or not connected.</returns>
+        protected INdrTransportMarshaler GetMarshaler()
+        {
+            return _transport as INdrTransportMarshaler;
+        }
         #endregion
 
         #region Public Properties

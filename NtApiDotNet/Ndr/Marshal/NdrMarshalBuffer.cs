@@ -31,7 +31,8 @@ namespace NtApiDotNet.Ndr.Marshal
         private readonly MemoryStream _stm;
         private readonly BinaryWriter _writer;
         private readonly List<NdrSystemHandle> _handles;
-        private NdrDeferralStack _deferred_writes;
+        private readonly INdrTransportMarshaler _marshaler;
+        private readonly NdrDeferralStack _deferred_writes;
         private int _referent;
         private long? _conformance_position;
 
@@ -177,26 +178,25 @@ namespace NtApiDotNet.Ndr.Marshal
         #endregion
 
         #region Constructors
-        public NdrMarshalBuffer() : this(new NdrDataRepresentation()
-        {
-            CharacterRepresentation = NdrCharacterRepresentation.ASCII,
-            FloatingPointRepresentation = NdrFloatingPointRepresentation.IEEE,
-            IntegerRepresentation = NdrIntegerRepresentation.LittleEndian
-        })
+        public NdrMarshalBuffer() : this(null)
         {
         }
 
-        public NdrMarshalBuffer(NdrDataRepresentation data_representation)
+        public NdrMarshalBuffer(INdrTransportMarshaler marshaler) : this(NdrDataRepresentation.Default, marshaler)
+        {
+        }
+
+        public NdrMarshalBuffer(NdrDataRepresentation data_representation, INdrTransportMarshaler marshaler = null)
         {
             _stm = new MemoryStream();
             _writer = new BinaryWriter(_stm, Encoding.Unicode);
             _handles = new List<NdrSystemHandle>();
             _referent = 0x20000;
             _deferred_writes = new NdrDeferralStack();
+            _marshaler = marshaler;
             NdrUnmarshalBuffer.CheckDataRepresentation(data_representation);
             DataRepresentation = data_representation;
         }
-
         #endregion
 
         #region Misc Methods
@@ -230,6 +230,15 @@ namespace NtApiDotNet.Ndr.Marshal
         public void WriteInterfacePointer(NdrInterfacePointer intf)
         {
             WriteStruct(intf);
+        }
+
+        public void WriteComObject(INdrComObject obj, Guid iid)
+        {
+            if (_marshaler is null)
+            {
+                throw new NotSupportedException("Marshaling COM objects is not supported.");
+            }
+            WriteInterfacePointer(_marshaler.MarshalComObject(obj, iid));
         }
 
         public void WritePipeArray<T>(T[] pipe_array) where T : struct

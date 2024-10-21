@@ -75,6 +75,10 @@ namespace NtApiDotNet.Win32.Rpc
         /// Marshal pipe parameters using arrays.
         /// </summary>
         MarshalPipesAsArrays = 0x400,
+        /// <summary>
+        /// Marshal interface pointers to COM objects.
+        /// </summary>
+        MarshalComObjects = 0x800,
     }
 
     /// <summary>

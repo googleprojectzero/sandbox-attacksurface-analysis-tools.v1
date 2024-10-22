@@ -523,10 +523,14 @@ namespace NtApiDotNet.Ndr
                 iids = new Guid[0];
             }
             HashSet<Guid> iid_set = new HashSet<Guid>(iids);
-            using (SafeLoadLibraryHandle lib = SafeLoadLibraryHandle.LoadLibrary(path))
+            using (var lib = SafeLoadLibraryHandle.LoadLibrary(path, LoadLibraryFlags.None, false))
             {
-                _symbol_resolver?.LoadModule(path, lib.DangerousGetHandle());
-                IntPtr pInfo = FindProxyDllInfo(lib, clsid);
+                if (!lib.IsSuccess)
+                {
+                    throw new NdrParserException($"Couldn't find module {lib.Status.MapNtStatusToDosError()} - '{path}'");
+                }
+                _symbol_resolver?.LoadModule(path, lib.Result.DangerousGetHandle());
+                IntPtr pInfo = FindProxyDllInfo(lib.Result, clsid);
                 if (pInfo == IntPtr.Zero)
                 {
                     return false;

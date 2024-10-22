@@ -60,6 +60,15 @@ namespace NtApiDotNet.Ndr
             }
             return base.FormatType(formatter);
         }
+
+        public override int GetSize()
+        {
+            if((Flags & NdrUserMarshalFlags.USER_MARSHAL_POINTER) != 0)
+            {
+                return IntPtr.Size;
+            }
+            return base.GetSize();
+        }
     }
 
     [Serializable]

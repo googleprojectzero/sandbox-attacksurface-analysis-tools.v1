@@ -544,8 +544,13 @@ namespace NtApiDotNet.Win32.Rpc
             NdrFormatter formatter = new NdrFormatter(new Dictionary<Guid, string>(), s=> s, DefaultNdrFormatterFlags.RemoveComments);
             var type_name_arg = CodeGenUtils.GetPrimitive($"{type.Format} - {type.FormatType(formatter)}");
             AdditionalArguments additional_args = new AdditionalArguments(false, type_name_arg);
+            RpcPointerType p_type = RpcPointerType.None;
+            if (type is NdrUserMarshalTypeReference user_marshal && user_marshal.Flags.HasFlagSet(NdrUserMarshalFlags.USER_MARSHAL_UNIQUE))
+            {
+                p_type = RpcPointerType.Unique;
+            }
             return new RpcTypeDescriptor(typeof(NdrUnsupported), nameof(NdrUnmarshalBuffer.ReadUnsupported), marshal_helper,
-                nameof(NdrMarshalBuffer.WriteUnsupported), type, null, null, additional_args, additional_args);
+                nameof(NdrMarshalBuffer.WriteUnsupported), type, null, null, additional_args, additional_args, p_type);
         }
 
         // Should implement this for each type rather than this.

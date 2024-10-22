@@ -380,6 +380,10 @@ namespace NtApiDotNet.Win32.Rpc
                 case NdrKnownTypes.HSTRING:
                     return new RpcTypeDescriptor(typeof(string), nameof(NdrUnmarshalBuffer.ReadHString),
                         nameof(NdrMarshalBuffer.WriteHString), known_type, RpcPointerType.Unique);
+                case NdrKnownTypes.HWND:
+                case NdrKnownTypes.HMENU:
+                    return new RpcTypeDescriptor(typeof(NdrWindowHandle), nameof(NdrUnmarshalBuffer.ReadStruct), marshal_helper,
+                        nameof(NdrMarshalBuffer.WriteStruct), known_type, null, null, new AdditionalArguments(true), new AdditionalArguments(true));
             }
             // TODO: Implement remaining custom marshallers?
             return null;

@@ -77,6 +77,7 @@
     <Compile Include="Ndr\Marshal\FLAGGED_WORD_BLOB.cs" />
     <Compile Include="Ndr\Marshal\INdrTransportMarshaler.cs" />
     <Compile Include="Ndr\Marshal\NdrComObject.cs" />
+    <Compile Include="Ndr\Marshal\NdrWindowHandle.cs" />
     <Compile Include="Ndr\Marshal\NdrUserMarshal.cs" />
     <Compile Include="Ndr\Marshal\NdrSystemHandle.cs" />
     <Compile Include="Ndr\NdrUtils.cs" />

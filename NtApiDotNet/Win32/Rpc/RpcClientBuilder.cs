@@ -464,7 +464,7 @@ namespace NtApiDotNet.Win32.Rpc
                     args = new AdditionalArguments(false, iid_exp);
                 }
 
-                return new RpcTypeDescriptor(typeof(INdrComObject), nameof(NdrUnmarshalBuffer.ReadComObject),
+                return new RpcTypeDescriptor(typeof(NdrComObject), nameof(NdrUnmarshalBuffer.ReadComObject),
                         marshal_helper, nameof(NdrMarshalBuffer.WriteComObject), type, type.IidIsDescriptor, null, args, null, RpcPointerType.Unique);
             }
             else

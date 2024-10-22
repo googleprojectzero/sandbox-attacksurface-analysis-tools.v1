@@ -232,7 +232,7 @@ namespace NtApiDotNet.Ndr.Marshal
             WriteStruct(intf);
         }
 
-        public void WriteComObject(INdrComObject obj, Guid iid)
+        public void WriteComObject(NdrComObject obj, Guid iid)
         {
             if (_marshaler is null)
             {

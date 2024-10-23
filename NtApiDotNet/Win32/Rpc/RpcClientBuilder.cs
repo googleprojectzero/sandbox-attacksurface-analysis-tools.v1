@@ -42,6 +42,7 @@ namespace NtApiDotNet.Win32.Rpc
         private readonly string _source_path;
         private readonly RpcClientBuilderArguments _args;
         private readonly HashSet<string> _proc_names;
+        private readonly bool _complex_types_only;
 
         private bool HasFlag(RpcClientBuilderFlags flag)
         {
@@ -907,7 +908,7 @@ namespace NtApiDotNet.Win32.Rpc
 
         private void GenerateClient(string name, CodeNamespace ns, int complex_type_count, MarshalHelperBuilder marshal_helper)
         {
-            if (!_procs.Any())
+            if (!_procs.Any() && _complex_types_only)
             {
                 return;
             }
@@ -1215,6 +1216,7 @@ namespace NtApiDotNet.Win32.Rpc
         private RpcClientBuilder(IEnumerable<NdrComplexTypeReference> complex_types, RpcClientBuilderArguments args)
             : this(Array.Empty<NdrProcedureDefinition>(), Guid.Empty, new Version(), string.Empty, complex_types, args)
         {
+            _complex_types_only = true;
         }
 
         private RpcClientBuilder(IRpcBuildableClient client, RpcClientBuilderArguments args) 

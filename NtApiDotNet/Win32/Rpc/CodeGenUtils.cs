@@ -872,34 +872,41 @@ namespace NtApiDotNet.Win32.Rpc
                 if (offset != null)
                 {
                     CodeExpression expr = GetVariable(offset);
-                    CodeExpression right_expr = null;
-                    CodeBinaryOperatorType operator_type = CodeBinaryOperatorType.Add;
-                    switch (correlation.Operator)
+                    if (is_iid || correlation.Operator == NdrFormatCharacter.FC_DEREFERENCE)
                     {
-                        case NdrFormatCharacter.FC_ADD_1:
-                            right_expr = GetPrimitive(1);
-                            operator_type = CodeBinaryOperatorType.Add;
-                            break;
-                        case NdrFormatCharacter.FC_DIV_2:
-                            right_expr = GetPrimitive(2);
-                            operator_type = CodeBinaryOperatorType.Divide;
-                            break;
-                        case NdrFormatCharacter.FC_MULT_2:
-                            right_expr = GetPrimitive(2);
-                            operator_type = CodeBinaryOperatorType.Multiply;
-                            break;
-                        case NdrFormatCharacter.FC_SUB_1:
-                            right_expr = GetPrimitive(2);
-                            operator_type = CodeBinaryOperatorType.Multiply;
-                            break;
-                        case NdrFormatCharacter.FC_DEREFERENCE:
-                            expr = expr.DeRef();
-                            break;
+                        expr = expr.DeRef();
                     }
-
-                    if (right_expr != null)
+                    else
                     {
-                        expr = new CodeBinaryOperatorExpression(expr, operator_type, right_expr);
+                        CodeExpression right_expr = null;
+                        CodeBinaryOperatorType operator_type = CodeBinaryOperatorType.Add;
+                        switch (correlation.Operator)
+                        {
+                            case NdrFormatCharacter.FC_ADD_1:
+                                right_expr = GetPrimitive(1);
+                                operator_type = CodeBinaryOperatorType.Add;
+                                break;
+                            case NdrFormatCharacter.FC_DIV_2:
+                                right_expr = GetPrimitive(2);
+                                operator_type = CodeBinaryOperatorType.Divide;
+                                break;
+                            case NdrFormatCharacter.FC_MULT_2:
+                                right_expr = GetPrimitive(2);
+                                operator_type = CodeBinaryOperatorType.Multiply;
+                                break;
+                            case NdrFormatCharacter.FC_SUB_1:
+                                right_expr = GetPrimitive(2);
+                                operator_type = CodeBinaryOperatorType.Multiply;
+                                break;
+                            case NdrFormatCharacter.FC_DEREFERENCE:
+                                expr = expr.DeRef();
+                                break;
+                        }
+
+                        if (right_expr != null)
+                        {
+                            expr = new CodeBinaryOperatorExpression(expr, operator_type, right_expr);
+                        }
                     }
                     return new RpcMarshalArgument(expr, is_iid ? typeof(Guid).ToRef() : typeof(long).ToRef());
                 }

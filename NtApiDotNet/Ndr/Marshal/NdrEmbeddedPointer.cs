@@ -30,16 +30,26 @@ namespace NtApiDotNet.Ndr.Marshal
         }
 
         /// <summary>
-        /// Operator to convert from a value to an embedded pointer.
+        /// Create an embedded pointer from a value.
         /// </summary>
-        /// <param name="value">The value to point to.</param>
-        public static implicit operator NdrEmbeddedPointer<T>(T value)
+        /// <param name="value">The value to create from.</param>
+        /// <returns>The embedded pointer.</returns>
+        public static NdrEmbeddedPointer<T> Create(T value)
         {
             object obj = value;
             if (obj is null)
                 return null;
 
             return new NdrEmbeddedPointer<T>(value);
+        }
+
+        /// <summary>
+        /// Operator to convert from a value to an embedded pointer.
+        /// </summary>
+        /// <param name="value">The value to point to.</param>
+        public static implicit operator NdrEmbeddedPointer<T>(T value)
+        {
+            return Create(value);
         }
 
         /// <summary>

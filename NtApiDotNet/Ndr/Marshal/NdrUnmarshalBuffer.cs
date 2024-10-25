@@ -222,7 +222,7 @@ namespace NtApiDotNet.Ndr.Marshal
             return ReadStruct<NdrInterfacePointer>();
         }
 
-        public NdrComObject ReadComObject()
+        public INdrComObject ReadComObject()
         {
             if (_marshaler is null)
             {

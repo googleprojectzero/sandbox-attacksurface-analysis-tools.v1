@@ -82,7 +82,14 @@ namespace NtApiDotNet.Win32.Rpc
             foreach (var p in parameters)
             {
                 method.AddParam(p.Item1, p.Item2);
-                method.Statements.Add(new CodeAssignStatement(target.GetFieldReference(p.Item2), GetVariable(p.Item2)));
+                CodeExpression get_p = GetVariable(p.Item2);
+                if (p.Item1.BaseType == typeof(INdrComObject).FullName)
+                {
+                    get_p = GetStaticMethod(typeof(NdrEmbeddedPointer<INdrComObject>), 
+                        nameof(NdrEmbeddedPointer<INdrComObject>.Create), get_p);
+                }
+
+                method.Statements.Add(new CodeAssignStatement(target.GetFieldReference(p.Item2), get_p));
             }
         }
 

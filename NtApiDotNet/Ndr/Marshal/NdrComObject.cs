@@ -15,9 +15,9 @@
 namespace NtApiDotNet.Ndr.Marshal
 {
     /// <summary>
-    /// Base class for a COM object.
+    /// Marker interface for a COM object.
     /// </summary>
-    public abstract class NdrComObject
+    public interface INdrComObject
     {
     }
 }

@@ -460,7 +460,7 @@ namespace NtApiDotNet.Win32.Rpc
 
         private RpcTypeDescriptor GetInterfacePointerTypeDescriptor(NdrInterfacePointerTypeReference type, MarshalHelperBuilder marshal_helper)
         {
-            if (HasFlag(RpcClientBuilderFlags.MarshalComObjects))
+            if (HasFlag(RpcClientBuilderFlags.ComObject))
             {
                 AdditionalArguments args = null;
                 if (type.IsConstant)
@@ -469,7 +469,7 @@ namespace NtApiDotNet.Win32.Rpc
                     args = new AdditionalArguments(false, iid_exp);
                 }
 
-                return new RpcTypeDescriptor(typeof(NdrComObject), nameof(NdrUnmarshalBuffer.ReadComObject),
+                return new RpcTypeDescriptor(typeof(INdrComObject), nameof(NdrUnmarshalBuffer.ReadComObject),
                         marshal_helper, nameof(NdrMarshalBuffer.WriteComObject), type, type.IidIsDescriptor, null, args, null, RpcPointerType.Unique);
             }
             else
@@ -918,14 +918,19 @@ namespace NtApiDotNet.Win32.Rpc
             type.IsClass = true;
             type.TypeAttributes = TypeAttributes.Public | TypeAttributes.Sealed;
             type.BaseTypes.Add(typeof(RpcClientBase));
+            bool com_object = HasFlag(RpcClientBuilderFlags.ComObject);
+            if (com_object)
+            {
+                type.BaseTypes.Add(typeof(INdrComObject));
+            }
 
             CodeConstructor constructor = type.AddConstructor(MemberAttributes.Public | MemberAttributes.Final);
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_id.ToString()));
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_ver.Major));
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_ver.Minor));
 
-            CodeExpression[] marshal_args = HasFlag(RpcClientBuilderFlags.MarshalComObjects) ?
-                new[] { new CodeMethodInvokeExpression(null, "GetMarshaler") } : Array.Empty<CodeExpression>();
+            CodeExpression[] marshal_args = com_object ? new[] { new CodeMethodInvokeExpression(null, "GetMarshaler") } 
+                : Array.Empty<CodeExpression>();
 
             type.CreateSendReceive(marshal_helper);
 
@@ -1145,7 +1150,7 @@ namespace NtApiDotNet.Win32.Rpc
             AddServerComment(unit);
             CodeNamespace ns = unit.AddNamespace(ns_name);
             bool type_decode = HasFlag(RpcClientBuilderFlags.GenerateComplexTypeEncodeMethods);
-            bool transport_marshaler = HasFlag(RpcClientBuilderFlags.MarshalComObjects);
+            bool transport_marshaler = HasFlag(RpcClientBuilderFlags.ComObject);
             if (type_decode && transport_marshaler)
             {
                 throw new NotSupportedException("Can't support complex type encoding and COM object marshaling.");

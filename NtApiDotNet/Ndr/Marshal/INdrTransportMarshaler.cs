@@ -27,13 +27,13 @@ namespace NtApiDotNet.Ndr.Marshal
         /// <param name="obj">The object to marshal.</param>
         /// <param name="iid">The IID specified by the call.</param>
         /// <returns>The marshaled COM object.</returns>
-        NdrInterfacePointer MarshalComObject(NdrComObject obj, Guid iid);
+        NdrInterfacePointer MarshalComObject(INdrComObject obj, Guid iid);
 
         /// <summary>
         /// Unmarshal a COM object.
         /// </summary>
         /// <param name="intf">The interface pointer to unmarshal.</param>
         /// <returns>The unmarshaled COM object.</returns>
-        NdrComObject UnmarshalComObject(NdrInterfacePointer intf);
+        INdrComObject UnmarshalComObject(NdrInterfacePointer intf);
     }
 }

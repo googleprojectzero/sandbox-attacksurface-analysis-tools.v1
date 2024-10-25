@@ -274,7 +274,8 @@ namespace NtApiDotNet.Win32.Rpc
             return type;
         }
 
-        public static CodeMemberProperty AddProperty(this CodeTypeDeclaration type, string name, CodeTypeReference prop_type, MemberAttributes attributes, params CodeStatement[] get_statements)
+        public static CodeMemberProperty AddProperty(this CodeTypeDeclaration type, string name, CodeTypeReference prop_type, 
+            MemberAttributes attributes, params CodeStatement[] get_statements)
         {
             var property = new CodeMemberProperty
             {
@@ -325,6 +326,27 @@ namespace NtApiDotNet.Win32.Rpc
             method.PrivateImplementationType = new CodeTypeReference(typeof(INdrStructure));
             method.ReturnType = typeof(int).ToRef();
             method.AddReturn(GetPrimitive(alignment));
+        }
+
+        public static CodeExpression GetMarshalerExpression()
+        {
+            return new CodeMethodInvokeExpression(null, "GetMarshaler");
+        }
+
+        public static void ImplementComObject(this CodeTypeDeclaration type)
+        {
+            type.BaseTypes.Add(typeof(INdrComObject));
+            CodeMemberMethod method = type.AddMethod(nameof(INdrComObject.QueryInterface), MemberAttributes.Final | MemberAttributes.Private);
+            method.PrivateImplementationType = new CodeTypeReference(typeof(INdrComObject));
+            method.ReturnType = typeof(INdrComObject).ToRef();
+            method.AddParam(typeof(Guid).ToRef(), "iid");
+            method.AddReturn(new CodeMethodInvokeExpression(GetMarshalerExpression(), nameof(INdrTransportMarshaler.QueryComObject),
+                new CodeThisReferenceExpression(), GetVariable("iid")));
+
+            method = type.AddMethod(nameof(INdrComObject.GetIid), MemberAttributes.Final | MemberAttributes.Private);
+            method.PrivateImplementationType = new CodeTypeReference(typeof(INdrComObject));
+            method.ReturnType = typeof(Guid).ToRef();
+            method.AddReturn(new CodePropertyReferenceExpression(null, nameof(RpcClientBase.InterfaceId)));
         }
 
         public static CodeMemberMethod AddUnmarshalMethod(this CodeTypeDeclaration type, string unmarshal_name, MarshalHelperBuilder marshal_helper)

@@ -35,5 +35,13 @@ namespace NtApiDotNet.Ndr.Marshal
         /// <param name="intf">The interface pointer to unmarshal.</param>
         /// <returns>The unmarshaled COM object.</returns>
         INdrComObject UnmarshalComObject(NdrInterfacePointer intf);
+
+        /// <summary>
+        /// Implements a method to query for another COM interface.
+        /// </summary>
+        /// <param name="obj">The NDR COM object.</param>
+        /// <param name="iid">The IID for the interface.</param>
+        /// <returns>The queried COM interface.</returns>
+        INdrComObject QueryComObject(INdrComObject obj, Guid iid);
     }
 }

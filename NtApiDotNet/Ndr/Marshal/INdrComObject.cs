@@ -12,12 +12,26 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+using System;
+
 namespace NtApiDotNet.Ndr.Marshal
 {
     /// <summary>
-    /// Marker interface for a COM object.
+    /// Interface for a COM object.
     /// </summary>
-    public interface INdrComObject
+    public interface INdrComObject : IDisposable
     {
+        /// <summary>
+        /// Implements a method to query for another COM interface.
+        /// </summary>
+        /// <param name="iid">The IID for the interface.</param>
+        /// <returns>The queried COM interface.</returns>
+        INdrComObject QueryInterface(Guid iid);
+
+        /// <summary>
+        /// Get the IID for this object.
+        /// </summary>
+        /// <returns>The IID for this object.</returns>
+        Guid GetIid();
     }
 }

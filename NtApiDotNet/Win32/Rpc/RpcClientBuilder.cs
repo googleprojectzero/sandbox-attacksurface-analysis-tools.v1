@@ -921,7 +921,7 @@ namespace NtApiDotNet.Win32.Rpc
             bool com_object = HasFlag(RpcClientBuilderFlags.ComObject);
             if (com_object)
             {
-                type.BaseTypes.Add(typeof(INdrComObject));
+                type.ImplementComObject();
             }
 
             CodeConstructor constructor = type.AddConstructor(MemberAttributes.Public | MemberAttributes.Final);
@@ -929,7 +929,7 @@ namespace NtApiDotNet.Win32.Rpc
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_ver.Major));
             constructor.BaseConstructorArgs.Add(CodeGenUtils.GetPrimitive(_interface_ver.Minor));
 
-            CodeExpression[] marshal_args = com_object ? new[] { new CodeMethodInvokeExpression(null, "GetMarshaler") } 
+            CodeExpression[] marshal_args = com_object ? new[] { CodeGenUtils.GetMarshalerExpression() } 
                 : Array.Empty<CodeExpression>();
 
             type.CreateSendReceive(marshal_helper);

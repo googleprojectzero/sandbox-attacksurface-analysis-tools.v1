@@ -58,7 +58,7 @@ namespace NtApiDotNet.Ndr
     }
 
     [Serializable]
-    public class NdrProcedureParameter
+    public class NdrProcedureParameter : INdrNamedObject
     {
         public NdrParamAttributes Attributes { get; }
         public NdrBaseTypeReference Type { get; }
@@ -161,7 +161,7 @@ namespace NtApiDotNet.Ndr
     }
 
     [Serializable]
-    public class NdrProcedureDefinition
+    public class NdrProcedureDefinition : INdrNamedObject
     {
         public string Name { get; set; }
         public IList<NdrProcedureParameter> Params { get; }

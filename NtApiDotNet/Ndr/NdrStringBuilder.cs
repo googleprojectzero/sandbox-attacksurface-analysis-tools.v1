@@ -12,11 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace NtApiDotNet.Ndr
 {
@@ -25,8 +22,9 @@ namespace NtApiDotNet.Ndr
     /// </summary>
     public class NdrStringBuilder
     {
-        private StringBuilder _builder = new StringBuilder();
-        private Stack<string> _current_indent = new Stack<string>();
+        private readonly StringBuilder _builder = new StringBuilder();
+        private readonly Stack<string> _current_indent = new Stack<string>();
+        private readonly List<NdrFormatterNameTag> _tags = new List<NdrFormatterNameTag>();
         private bool _new_line = true;
 
         #region Private Methods
@@ -89,6 +87,58 @@ namespace NtApiDotNet.Ndr
         }
 
         /// <summary>
+        /// Append a named object to the builder and add a tag.
+        /// </summary>
+        /// <param name="obj">The object associated with the tag.</param>
+        /// <returns>The current builder instance.</returns>
+        public NdrStringBuilder AppendTagged(INdrNamedObject obj)
+        {
+            return AppendTagged(obj.Name, obj);
+        }
+
+        /// <summary>
+        /// Append a named object to the builder and add a tag.
+        /// </summary>
+        /// <param name="str">The string to append if it differs from the tag.</param>
+        /// <param name="obj">The object associated with the tag.</param>
+        /// <returns>The current builder instance.</returns>
+        public NdrStringBuilder AppendTagged(string str, INdrNamedObject obj)
+        {
+            AppendIndent();
+            int offset = str.IndexOf(obj.Name);
+            if (offset < 0)
+            {
+                offset = 0;
+            }
+            _tags.Add(new NdrFormatterNameTag(_builder.Length + offset, obj.Name.Length, obj));
+            _builder.Append(str);
+            return this;
+        }
+
+        /// <summary>
+        /// Append a named type to the builder and add a tag.
+        /// </summary>
+        /// <param name="str">The string to append if it differs from the tag.</param>
+        /// <param name="type">The type to append as a tag.</param>
+        /// <returns>The current builder instance.</returns>
+        public NdrStringBuilder AppendTagged(string str, NdrBaseTypeReference type)
+        {
+            while (type is NdrPointerTypeReference reference)
+            {
+                type = reference.Type;
+            }
+
+            if (type is INdrNamedObject obj)
+            {
+                return AppendTagged(str, obj);
+            }
+            else
+            {
+                return Append(str);
+            }
+        }
+
+        /// <summary>
         /// Append a formatted string to the builder.
         /// </summary>
         /// <param name="format">The string format.</param>
@@ -139,6 +189,22 @@ namespace NtApiDotNet.Ndr
         public override string ToString()
         {
             return _builder.ToString();
+        }
+
+        /// <summary>
+        /// The list of named tags.
+        /// </summary>
+        public IEnumerable<NdrFormatterNameTag> Tags => _tags;
+
+        /// <summary>
+        /// Clear the builder.
+        /// </summary>
+        public void Clear()
+        {
+            _builder.Clear();
+            _current_indent.Clear();
+            _tags.Clear();
+            _new_line = true;
         }
     }
 }

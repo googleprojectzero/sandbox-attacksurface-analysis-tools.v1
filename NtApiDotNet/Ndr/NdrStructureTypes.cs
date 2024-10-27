@@ -28,7 +28,7 @@ namespace NtApiDotNet.Ndr
 #pragma warning disable 1591
 
     [Serializable]
-    public abstract class NdrComplexTypeReference : NdrBaseTypeReference
+    public abstract class NdrComplexTypeReference : NdrBaseTypeReference, INdrNamedObject
     {
         public string Name { get; set; }
         public abstract int MemberCount { get; }
@@ -41,7 +41,7 @@ namespace NtApiDotNet.Ndr
     }
 
     [Serializable]
-    public sealed class NdrStructureMember
+    public sealed class NdrStructureMember : INdrNamedObject
     {
         public NdrBaseTypeReference MemberType { get; internal set; }
         public int Offset { get; private set; }

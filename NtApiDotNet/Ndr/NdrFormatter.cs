@@ -52,6 +52,40 @@ namespace NtApiDotNet.Ndr
         string FormatRpcServerInterface(NdrRpcServerInterface rpc_server);
     }
 
+    /// <summary>
+    /// An interface which can be implemented to handle formatting parsed NDR data which takes a builder argument.
+    /// </summary>
+    public interface INdrFormatterBuilder
+    {
+        /// <summary>
+        /// Format a complex type using the current formatter.
+        /// </summary>
+        /// <param name="builder">The builder to write to.</param>
+        /// <param name="complex_type">The complex type to format.</param>
+        void FormatComplexType(NdrStringBuilder builder, NdrComplexTypeReference complex_type);
+
+        /// <summary>
+        /// Format a procedure using the current formatter.
+        /// </summary>
+        /// <param name="builder">The builder to write to.</param>
+        /// <param name="procedure">The procedure to format.</param>
+        void FormatProcedure(NdrStringBuilder builder, NdrProcedureDefinition procedure);
+
+        /// <summary>
+        /// Format a COM proxy using the current formatter.
+        /// </summary>
+        /// <param name="builder">The builder to write to.</param>
+        /// <param name="com_proxy">The COM proxy to format.</param>
+        void FormatComProxy(NdrStringBuilder builder, NdrComProxyDefinition com_proxy);
+
+        /// <summary>
+        /// Format an RPC server interface using the current formatter.
+        /// </summary>
+        /// <param name="builder">The builder to write to.</param>
+        /// <param name="rpc_server">The RPC server.</param>
+        void FormatRpcServerInterface(NdrStringBuilder builder, NdrRpcServerInterface rpc_server);
+    }
+
     internal interface INdrFormatterInternal : INdrFormatter
     {
         string SimpleTypeToName(NdrFormatCharacter format);
@@ -349,6 +383,45 @@ namespace NtApiDotNet.Ndr
         /// Enable type defs.
         /// </summary>
         EnableTypeDefs = 0x2,
+    }
+
+    /// <summary>
+    /// Name tag in formatted text.
+    /// </summary>
+    public sealed class NdrFormatterNameTag
+    {
+        /// <summary>
+        /// The offset into the text.
+        /// </summary>
+        public int Offset { get; }
+
+        /// <summary>
+        /// The length of the tag.
+        /// </summary>
+        public int Length { get; }
+
+        /// <summary>
+        /// The named object associated with the tag.
+        /// </summary>
+        public INdrNamedObject Entry { get; }
+
+        internal NdrFormatterNameTag(int offset, int length, INdrNamedObject entry)
+        {
+            Offset = offset;
+            Length = length;
+            Entry = entry;
+        }
+    }
+
+    /// <summary>
+    /// Interface to represent a named object.
+    /// </summary>
+    public interface INdrNamedObject
+    {
+        /// <summary>
+        /// The name of the object.
+        /// </summary>
+        string Name { get; set; }
     }
 
     /// <summary>

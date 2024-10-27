@@ -27,7 +27,7 @@ namespace NtApiDotNet.Ndr
     /// Class to represent a single COM proxy definition.
     /// </summary>
     [Serializable]
-    public class NdrComProxyDefinition
+    public class NdrComProxyDefinition : INdrNamedObject
     {
         /// <summary>
         /// The name of the proxy interface.

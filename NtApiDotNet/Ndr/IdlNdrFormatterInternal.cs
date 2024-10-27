@@ -18,22 +18,13 @@ using System.Linq;
 
 namespace NtApiDotNet.Ndr
 {
-    internal sealed class IdlNdrFormatterInternal : INdrFormatterInternal
+    internal sealed class IdlNdrFormatterInternal : INdrFormatterInternal, INdrFormatterBuilder
     {
         #region Private Members
-        private class NdrFormatterContextEntry<T>
+        private class NdrFormatterContextEntry<T> where T :INdrNamedObject
         {
-            /// <summary>
-            /// List of attributes to apply to the entry.
-            /// </summary>
             public HashSet<string> Attributes { get; }
-            /// <summary>
-            /// Type name.
-            /// </summary>
             public string TypeName { get; set; }
-            /// <summary>
-            /// Additional comment text.
-            /// </summary>
             public string Comment { get; set; }
             /// <summary>
             /// The name of the entry.
@@ -97,7 +88,6 @@ namespace NtApiDotNet.Ndr
             }
         }
 
-        private readonly Stack<string> _postfix = new Stack<string>();
         private readonly Dictionary<NdrBaseTypeReference, NdrTypeDefEntry> _typedefs = new Dictionary<NdrBaseTypeReference, NdrTypeDefEntry>();
         private readonly Dictionary<ContextHandleId, NdrTypeDefEntry> _context_handles = new Dictionary<ContextHandleId, NdrTypeDefEntry>();
         private readonly Dictionary<NdrUnionArms, NdrUnionTypeReference> _arms_to_union = new Dictionary<NdrUnionArms, NdrUnionTypeReference>();
@@ -266,7 +256,7 @@ namespace NtApiDotNet.Ndr
         }
 
         private NdrFormatterContextEntry<T> GetLinkedEntry<T>(NdrFormatterContextEntry<T> entry, List<NdrFormatterContextEntry<T>> entries,
-            NdrCorrelationType corellation_type, int offset)
+            NdrCorrelationType corellation_type, int offset) where T : INdrNamedObject
         {
             int calc_offset = 0;
             switch (corellation_type)
@@ -283,7 +273,7 @@ namespace NtApiDotNet.Ndr
         }
 
         private void ApplyCorrelation<T>(string name, NdrFormatterContextEntry<T> entry,
-            List<NdrFormatterContextEntry<T>> entries, NdrCorrelationDescriptor descriptor)
+            List<NdrFormatterContextEntry<T>> entries, NdrCorrelationDescriptor descriptor) where T : INdrNamedObject
         {
             if (descriptor is null || !descriptor.IsValid)
                 return;
@@ -345,11 +335,10 @@ namespace NtApiDotNet.Ndr
         private void GetParameter(NdrFormatterContextEntry<NdrProcedureParameter> entry,
             List<NdrFormatterContextEntry<NdrProcedureParameter>> entries)
         {
-            _postfix.Clear();
             NdrBaseTypeReference type = entry.Entry.Type;
             string type_name = !entry.Entry.Attributes.HasFlagSet(NdrParamAttributes.IsSimpleRef)
                 ? FormatType(type) : FormatPointer(FormatType(type));
-            entry.TypeName = $"{type_name} {entry.Name}{GetPostFix()}";
+            entry.TypeName = type_name;
             entry.AddAttributes(GetAttributes(entry.Entry));
             ApplyCorrelation("size_is", entry, entries, entry.Entry.Type.GetConformanceDescriptor());
             ApplyCorrelation("length_is", entry, entries, entry.Entry.Type.GetVarianceDescriptor());
@@ -383,7 +372,7 @@ namespace NtApiDotNet.Ndr
             List<NdrFormatterContextEntry<NdrStructureMember>> entries)
         {
             string type_name = FormatType(entry.Entry.MemberType);
-            entry.TypeName = $"{type_name} {entry.Name}{GetPostFix()}";
+            entry.TypeName = $"{type_name}";
             entry.AddAttributes(GetAttributes(entry.Entry.MemberType));
             ApplyCorrelation("size_is", entry, entries, entry.Entry.MemberType.GetConformanceDescriptor());
             ApplyCorrelation("length_is", entry, entries, entry.Entry.MemberType.GetVarianceDescriptor());
@@ -403,7 +392,7 @@ namespace NtApiDotNet.Ndr
             if (_arms_to_union.ContainsKey(type.Arms))
                 return;
             builder.Append($"[switch_type({SimpleTypeToName(type.SwitchType)})] ");
-            builder.Append($"union {type.Name}").AppendLine(" {");
+            builder.Append("union ").AppendTagged(type).AppendLine(" {");
             builder.PushIndent(' ', 4);
 
             foreach (NdrUnionArm arm in type.Arms.Arms)
@@ -412,7 +401,8 @@ namespace NtApiDotNet.Ndr
                 var attrs = GetAttributes(arm.ArmType);
                 if (attrs.Any())
                     builder.Append($"{FormatAttributes(attrs)} ");
-                builder.AppendLine($"{FormatType(arm.ArmType)} {arm.Name};");
+                string type_name = FormatType(arm.ArmType);
+                builder.AppendTagged(type_name, arm.ArmType).Append(" ").AppendTagged(arm).AppendLine(";");
             }
 
             if (type.Arms.DefaultArm != null)
@@ -458,7 +448,22 @@ namespace NtApiDotNet.Ndr
                 GetParameter(entry, entries);
             }
 
-            builder.AppendLine($"{return_value} {procedure.Name}({string.Join(", ", entries.Select(p => FormatParameter(p)))});");
+            builder.Append($"{return_value} ").AppendTagged(procedure).Append("(");
+            for (int i = 0; i < entries.Count; ++i)
+            {
+                var entry = entries[i];
+                if (entry.Attributes.Count > 0)
+                {
+                    builder.Append($"{FormatAttributes(entry.Attributes)} ");
+                }
+                builder.AppendTagged(entry.TypeName, entry.Entry.Type).Append(" ");
+                builder.AppendTagged(entry.Entry);
+                if (i < entries.Count - 1)
+                {
+                    builder.Append(", ");
+                }
+            }
+            builder.AppendLine("};");
         }
 
         private string GuidToInterfaceName(Guid guid)
@@ -557,7 +562,7 @@ namespace NtApiDotNet.Ndr
         private void FormatEncapsulatedUnion(NdrStringBuilder builder, NdrUnionTypeReference type)
         {
             string selector_name = !string.IsNullOrWhiteSpace(type.SelectorName) ? type.SelectorName : "Selector";
-            builder.Append($"union {type.Name} switch ({SimpleTypeToName(type.SwitchType)} {selector_name}) {type.Name}_UNION").AppendLine(" {");
+            builder.Append("union ").AppendTagged(type).Append($" switch ({SimpleTypeToName(type.SwitchType)} {selector_name}) {type.Name}_UNION").AppendLine(" {");
             builder.PushIndent(' ', 4);
 
             foreach (NdrUnionArm arm in type.Arms.Arms)
@@ -566,7 +571,7 @@ namespace NtApiDotNet.Ndr
                 var attrs = GetAttributes(arm.ArmType);
                 if (attrs.Any())
                     builder.Append($"{FormatAttributes(attrs)} ");
-                builder.AppendLine($"{FormatType(arm.ArmType)} {arm.Name};");
+                builder.Append($"{FormatType(arm.ArmType)} ").AppendTagged(arm).AppendLine(";");
             }
 
             if (type.Arms.DefaultArm != null)
@@ -592,34 +597,9 @@ namespace NtApiDotNet.Ndr
             return base_type.FormatType(this);
         }
 
-        private string GetPostFix()
-        {
-            string ret = string.Join(string.Empty, _postfix);
-            _postfix.Clear();
-            return ret;
-        }
-
         private string FormatAttributes(IEnumerable<string> attributes)
         {
             return $"[{string.Join(", ", attributes)}]";
-        }
-
-        private void FormatRpcInterface(NdrStringBuilder builder, NdrRpcServerInterface rpc_server)
-        {
-            builder.AppendLine("[");
-            builder.PushIndent(' ', 2);
-            builder.AppendLine($"uuid({rpc_server.InterfaceId.ToString().ToUpper()}),");
-            builder.AppendLine($"version({rpc_server.InterfaceVersion})");
-            builder.PopIndent();
-            builder.AppendLine("]");
-            builder.AppendLine($"interface {GuidToInterfaceName(rpc_server.InterfaceId)} {{");
-            builder.PushIndent(' ', 4);
-            foreach (NdrProcedureDefinition proc in rpc_server.Procedures)
-            {
-                FormatProcedure(builder, proc, false);
-            }
-            builder.PopIndent();
-            builder.AppendLine("}").AppendLine();
         }
 
         private void FormatStruct(NdrStringBuilder builder, NdrBaseStructureTypeReference type)
@@ -634,7 +614,7 @@ namespace NtApiDotNet.Ndr
                 PopulateMember(entry, entries);
             }
 
-            builder.AppendLine($"struct {type.Name} {{");
+            builder.Append("struct ").AppendTagged(type).AppendLine(" {");
             builder.PushIndent(' ', 4);
 
             foreach (var entry in entries)
@@ -643,7 +623,7 @@ namespace NtApiDotNet.Ndr
                 {
                     builder.Append(FormatAttributes(entry.Attributes)).Append(" ");
                 }
-                builder.Append(entry.TypeName).AppendLine(";");
+                builder.AppendTagged(entry.TypeName, entry.Entry.MemberType).Append(" ").AppendTagged(entry.Entry).AppendLine(";");
             }
 
             builder.PopIndent();
@@ -656,32 +636,6 @@ namespace NtApiDotNet.Ndr
                 FormatNonEncapsulatedUnion(builder, type);
             else
                 FormatEncapsulatedUnion(builder, type);
-        }
-
-        private void FormatComProxy(NdrStringBuilder builder, NdrComProxyDefinition type)
-        {
-            builder.AppendLine("[");
-            builder.PushIndent(' ', 2);
-            builder.AppendLine("object,");
-            builder.AppendLine($"uuid({type.Iid.ToString().ToUpper()}),");
-            builder.PopIndent();
-            builder.AppendLine("]");
-
-            string base_name = IidToName(type.BaseIid);
-            if (string.IsNullOrEmpty(base_name))
-            {
-                string unknown_iid = $"Unknown IID {type.BaseIid}";
-                base_name = $"{FormatComment(unknown_iid)}IUnknown";
-            }
-
-            builder.AppendLine($"interface {GetProxyName(type)} : {base_name} {{");
-            builder.PushIndent(' ', 4);
-            foreach (NdrProcedureDefinition proc in type.Procedures)
-            {
-                FormatProcedure(builder, proc, true);
-            }
-            builder.PopIndent();
-            builder.AppendLine("}").AppendLine();
         }
         #endregion
 
@@ -809,14 +763,7 @@ namespace NtApiDotNet.Ndr
         public string FormatComplexType(NdrComplexTypeReference complex_type)
         {
             NdrStringBuilder builder = new NdrStringBuilder();
-            if (complex_type is NdrBaseStructureTypeReference struct_type)
-            {
-                FormatStruct(builder, struct_type);
-            }
-            else if (complex_type is NdrUnionTypeReference union_type)
-            {
-                FormatUnion(builder, union_type);
-            }
+            FormatComplexType(builder, complex_type);
             return builder.ToString();
         }
 
@@ -837,8 +784,69 @@ namespace NtApiDotNet.Ndr
         public string FormatRpcServerInterface(NdrRpcServerInterface rpc_server)
         {
             NdrStringBuilder builder = new NdrStringBuilder();
-            FormatRpcInterface(builder, rpc_server);
+            FormatRpcServerInterface(builder, rpc_server);
             return builder.ToString();
+        }
+
+        public void FormatComplexType(NdrStringBuilder builder, NdrComplexTypeReference complex_type)
+        {
+            if (complex_type is NdrBaseStructureTypeReference struct_type)
+            {
+                FormatStruct(builder, struct_type);
+            }
+            else if (complex_type is NdrUnionTypeReference union_type)
+            {
+                FormatUnion(builder, union_type);
+            }
+        }
+
+        public void FormatProcedure(NdrStringBuilder builder, NdrProcedureDefinition procedure)
+        {
+            FormatProcedure(builder, procedure, false);
+        }
+
+        public void FormatComProxy(NdrStringBuilder builder, NdrComProxyDefinition type)
+        {
+            builder.AppendLine("[");
+            builder.PushIndent(' ', 2);
+            builder.AppendLine("object,");
+            builder.AppendLine($"uuid({type.Iid.ToString().ToUpper()}),");
+            builder.PopIndent();
+            builder.AppendLine("]");
+
+            string base_name = IidToName(type.BaseIid);
+            if (string.IsNullOrEmpty(base_name))
+            {
+                string unknown_iid = $"Unknown IID {type.BaseIid}";
+                base_name = $"{FormatComment(unknown_iid)}IUnknown";
+            }
+
+            builder.Append("interface ").AppendTagged(GetProxyName(type), type).AppendLine($" : {base_name} {{");
+            builder.PushIndent(' ', 4);
+            foreach (NdrProcedureDefinition proc in type.Procedures)
+            {
+                FormatProcedure(builder, proc, true);
+            }
+            builder.PopIndent();
+            builder.AppendLine("}").AppendLine();
+        }
+
+        public void FormatRpcServerInterface(NdrStringBuilder builder, NdrRpcServerInterface rpc_server)
+        {
+            builder.AppendLine("[");
+            builder.PushIndent(' ', 2);
+            builder.AppendLine($"uuid({rpc_server.InterfaceId.ToString().ToUpper()}),");
+            builder.AppendLine($"version({rpc_server.InterfaceVersion})");
+            builder.PopIndent();
+            builder.AppendLine("]");
+            builder.AppendLine($"interface {GuidToInterfaceName(rpc_server.InterfaceId)} {{");
+            builder.PushIndent(' ', 4);
+            foreach (NdrProcedureDefinition proc in rpc_server.Procedures)
+            {
+                FormatProcedure(builder, proc, false);
+            }
+            builder.PopIndent();
+            builder.AppendLine("}").AppendLine();
         }
         #endregion
     }

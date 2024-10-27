@@ -27,7 +27,7 @@ namespace NtApiDotNet.Ndr
 {
 #pragma warning disable 1591
     [Serializable]
-    public sealed class NdrUnionArm
+    public sealed class NdrUnionArm : INdrNamedObject
     {
         public NdrBaseTypeReference ArmType { get; }
         public int CaseValue { get; }

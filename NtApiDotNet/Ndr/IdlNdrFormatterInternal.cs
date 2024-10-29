@@ -463,7 +463,7 @@ namespace NtApiDotNet.Ndr
                     builder.Append(", ");
                 }
             }
-            builder.AppendLine("};");
+            builder.AppendLine(");");
         }
 
         private string GuidToInterfaceName(Guid guid)

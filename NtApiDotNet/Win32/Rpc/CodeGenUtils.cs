@@ -342,11 +342,6 @@ namespace NtApiDotNet.Win32.Rpc
             method.AddParam(typeof(Guid).ToRef(), "iid");
             method.AddReturn(new CodeMethodInvokeExpression(GetMarshalerExpression(), nameof(INdrTransportMarshaler.QueryComObject),
                 new CodeThisReferenceExpression(), GetVariable("iid")));
-
-            method = type.AddMethod(nameof(INdrComObject.GetIid), MemberAttributes.Final | MemberAttributes.Private);
-            method.PrivateImplementationType = new CodeTypeReference(typeof(INdrComObject));
-            method.ReturnType = typeof(Guid).ToRef();
-            method.AddReturn(new CodePropertyReferenceExpression(null, nameof(RpcClientBase.InterfaceId)));
         }
 
         public static CodeMemberMethod AddUnmarshalMethod(this CodeTypeDeclaration type, string unmarshal_name, MarshalHelperBuilder marshal_helper)

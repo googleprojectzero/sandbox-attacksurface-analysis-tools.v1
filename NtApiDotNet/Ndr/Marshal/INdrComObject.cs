@@ -27,11 +27,5 @@ namespace NtApiDotNet.Ndr.Marshal
         /// <param name="iid">The IID for the interface.</param>
         /// <returns>The queried COM interface.</returns>
         INdrComObject QueryInterface(Guid iid);
-
-        /// <summary>
-        /// Get the IID for this object.
-        /// </summary>
-        /// <returns>The IID for this object.</returns>
-        Guid GetIid();
     }
 }

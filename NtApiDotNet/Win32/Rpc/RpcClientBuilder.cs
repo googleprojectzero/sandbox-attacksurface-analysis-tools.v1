@@ -916,12 +916,16 @@ namespace NtApiDotNet.Win32.Rpc
             CodeTypeDeclaration last_type = type;
             type.AddStartRegion("Client Implementation");
             type.IsClass = true;
-            type.TypeAttributes = TypeAttributes.Public | TypeAttributes.Sealed;
+            type.TypeAttributes = TypeAttributes.Public;
             type.BaseTypes.Add(typeof(RpcClientBase));
             bool com_object = HasFlag(RpcClientBuilderFlags.ComObject);
             if (com_object)
             {
                 type.ImplementComObject();
+            }
+            else
+            {
+                type.TypeAttributes |= TypeAttributes.Sealed;
             }
 
             CodeConstructor constructor = type.AddConstructor(MemberAttributes.Public | MemberAttributes.Final);
